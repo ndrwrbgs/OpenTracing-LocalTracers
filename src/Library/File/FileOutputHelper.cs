@@ -7,10 +7,18 @@ using System.Text;
 
 namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System.Runtime.CompilerServices;
+    using System.Threading;
+
     internal sealed class FileOutputHelper
     {
         private readonly MemoryCache fileOutputStreamCache = new MemoryCache("FileOutputStreamCache");
         private readonly string rootLocation;
+
+        /// <summary>
+        /// Copied from <see cref="StreamWriter"/>'s default
+        /// </summary>
+        internal static Encoding UTF8NoBOM { get; } = new UTF8Encoding(false, true);
 
         public FileOutputHelper(string rootLocation)
         {
@@ -23,7 +31,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             var filePath = Path.Combine(rootLocation, outputFileName);
 
             FileStream fileStream = GetCachedFileStream(filePath);
-            using (var streamWriter = new StreamWriter(fileStream, Encoding.UTF8, 8 * 1024, leaveOpen: true))
+            using (var streamWriter = new StreamWriter(fileStream, UTF8NoBOM, 1024, leaveOpen: true))
             {
                 lock (fileStream)
                 {
