@@ -9,6 +9,7 @@ Wrap your existing tracer with the ability to log to a local file and/or the Con
 ## Example outputs
 
 ### Console
+Created with dataSerialization.SetTag='Simple' and dataSerialization.Log='Simple'
 ![Console Output Example](https://raw.githubusercontent.com/ndrwrbgs/OpenTracing-LocalTracers/master/img/ConsoleOutputImage.png)
 
 ### File
