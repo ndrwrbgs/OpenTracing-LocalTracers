@@ -5,6 +5,18 @@
     <TargetFrameworks>net45</TargetFrameworks>
     <RootNamespace>OpenTracing.Contrib.LocalTracers</RootNamespace>
     <AssemblyName>OpenTracing.Contrib.LocalTracers</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>0.2.0</Version>
+    <Authors>ndrwrbgs</Authors>
+    <Company />
+    <Product />
+    <PackageLicenseUrl>https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/ndrwrbgs/OpenTracing-LocalTracers</PackageProjectUrl>
+    <PackageIconUrl>http://opentracing.io/img/favicon-32x32.png</PackageIconUrl>
+    <Description>ITracer that helps logging to console or disk.</Description>
+    <PackageReleaseNotes>Various bug fixes from https://github.com/ndrwrbgs/OpenTracing-LocalTracers/issues</PackageReleaseNotes>
+    <Copyright>Copyright 2019</Copyright>
+    <PackageTags>OpenTracing</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
