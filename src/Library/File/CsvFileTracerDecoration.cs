@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using OpenTracing.Contrib.Decorators;
 
 namespace OpenTracing.Contrib.LocalTracers.File

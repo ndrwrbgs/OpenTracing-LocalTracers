@@ -10,13 +10,13 @@ namespace OpenTracing.Contrib.LocalTracers.Console
 {
     public static class ColoredConsoleTracerDecorationFactory
     {
-        [CanBeNull]
+        [NotNull]
         [PublicAPI]
         public static ITracerDecoration Create(ConsoleElement config)
         {
             if (!config.Enabled)
             {
-                return null;
+                return NoopTracerDecorationFactory.Instance;
             }
 
             ColoredConsoleTracerDecoration.ColorChooser colorChooser = GetColorChooser(config.ColorMode, () => config.ColorsForCategoryTypeColorMode);

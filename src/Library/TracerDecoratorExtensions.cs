@@ -12,48 +12,59 @@ namespace OpenTracing.Contrib.LocalTracers
         [NotNull]
         public static ITracer Decorate(
             [NotNull] this ITracer source,
-            [CanBeNull] ITracerDecoration decoration)
+            [NotNull] ITracerDecoration decoration)
         {
-            if (decoration == null)
-            {
-                return source;
-            }
-
             var builder = new TracerDecoratorBuilder(source);
+
+            // For performance, to avoid a level of indirection when not needed
+            bool bypassBuilder = true;
 
             // Checking for null to avoid adding them if they're not implemented since the underlying library has optimizations if not subscribed
             if (decoration.OnSpanStarted != null)
             {
                 builder = builder.OnSpanStarted(decoration.OnSpanStarted);
+                bypassBuilder = false;
             }
 
             if (decoration.OnSpanFinished != null)
             {
                 builder = builder.OnSpanFinished(decoration.OnSpanFinished);
+                bypassBuilder = false;
             }
 
             if (decoration.OnSpanLog != null)
             {
                 builder = builder.OnSpanLog(decoration.OnSpanLog);
+                bypassBuilder = false;
             }
 
             if (decoration.OnSpanSetTag != null)
             {
                 builder = builder.OnSpanSetTag(decoration.OnSpanSetTag);
+                bypassBuilder = false;
             }
 
             if (decoration.OnSpanActivated != null)
             {
                 builder = builder.OnSpanActivated(decoration.OnSpanActivated);
+                bypassBuilder = false;
             }
 
             if (decoration.OnSpanStartedWithFinishCallback != null)
             {
                 builder = builder.OnSpanStartedWithCallback(decoration.OnSpanStartedWithFinishCallback);
+                bypassBuilder = false;
             }
 
-            return builder
-                .Build();
+            if (bypassBuilder)
+            {
+                return source;
+            }
+            else
+            {
+                return builder
+                    .Build();
+            }
         }
     }
 }

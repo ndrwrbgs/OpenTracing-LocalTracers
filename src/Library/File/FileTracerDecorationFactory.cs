@@ -7,21 +7,21 @@ namespace OpenTracing.Contrib.LocalTracers.File
 {
     public static class FileTracerDecorationFactory
     {
-        [CanBeNull]
+        [NotNull]
         [PublicAPI]
         public static ITracerDecoration Create(FileElement config)
         {
             if (!config.Enabled)
             {
-                return null;
+                return NoopTracerDecorationFactory.Instance;
             }
 
             if (!Directory.Exists(config.RootLocation.Path))
             {
                 if (!config.RootLocation.CreateIfNotExists)
                 {
-                    // No output location and configured not to make it, return null
-                    return null;
+                    // No output location and configured not to make it, return noop
+                    return NoopTracerDecorationFactory.Instance;
                 }
                 else
                 {

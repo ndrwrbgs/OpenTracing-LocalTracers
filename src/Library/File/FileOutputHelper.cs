@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.Caching;
 using System.Text;
 
 namespace OpenTracing.Contrib.LocalTracers.File
 {
-    using System.Runtime.CompilerServices;
-    using System.Threading;
-
     internal sealed class FileOutputHelper
     {
         private readonly MemoryCache fileOutputStreamCache = new MemoryCache("FileOutputStreamCache");
@@ -18,7 +13,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
         /// <summary>
         /// Copied from <see cref="StreamWriter"/>'s default
         /// </summary>
-        internal static Encoding UTF8NoBOM { get; } = new UTF8Encoding(false, true);
+        internal static Encoding Utf8NoBom { get; } = new UTF8Encoding(false, true);
 
         public FileOutputHelper(string rootLocation)
         {
@@ -31,7 +26,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             var filePath = Path.Combine(rootLocation, outputFileName);
 
             FileStream fileStream = GetCachedFileStream(filePath);
-            using (var streamWriter = new StreamWriter(fileStream, UTF8NoBOM, 1024, leaveOpen: true))
+            using (var streamWriter = new StreamWriter(fileStream, Utf8NoBom, 1024, leaveOpen: true))
             {
                 // We need to lock since we are using Streams rather than, say Console that does locking for us, otherwise
                 // various lines may get intermingled (another thread's line starts in the middle of outputting the previous)
