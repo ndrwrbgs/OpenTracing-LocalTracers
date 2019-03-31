@@ -6,6 +6,26 @@ Wrap your existing tracer with the ability to log to a local file and/or the Con
 * `ColoredConsoleTracerDecorationFactory`
 * `FileTracerDecorationFactory`
 
+## Example outputs
+
+### Console
+![Console Output Example](https://raw.githubusercontent.com/ndrwrbgs/OpenTracing-LocalTracers/master/img/ConsoleOutputImage.png)
+
+### File
+```csv
+2019-03-31T14:16:20.1167750-07:00,2,Start,test
+2019-03-31T14:16:20.1247813-07:00,3,Tag,foo,bar
+2019-03-31T14:16:20.1257770-07:00,3,Start,inner
+2019-03-31T14:16:20.1267771-07:00,3,Finish
+2019-03-31T14:16:20.1277758-07:00,2,Finish
+2019-03-31T14:16:48.9195913-07:00,2,Start,test
+2019-03-31T14:16:48.9255545-07:00,3,Tag,foo,"bar,
+hi"
+2019-03-31T14:16:48.9255545-07:00,3,Start,inner
+2019-03-31T14:16:48.9275536-07:00,3,Finish
+2019-03-31T14:16:48.9275536-07:00,2,Finish
+```
+
 ## Usage
 1. Configure your tracers as mentioned in 'Configuration'.
 1. Obtain your underlying tracer
