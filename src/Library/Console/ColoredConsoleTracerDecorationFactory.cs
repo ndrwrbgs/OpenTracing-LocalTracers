@@ -12,11 +12,11 @@ namespace OpenTracing.Contrib.LocalTracers.Console
     {
         [NotNull]
         [PublicAPI]
-        public static ITracerDecoration Create(ConsoleElement config)
+        public static TracerDecoration Create(ConsoleElement config)
         {
             if (!config.Enabled)
             {
-                return NoopTracerDecorationFactory.Instance;
+                return NoopTracerDecorationFactory.Instance.ToPublicType();
             }
 
             ColoredConsoleTracerDecoration.ColorChooser colorChooser = GetColorChooser(config.ColorMode, () => config.ColorsForCategoryTypeColorMode);
@@ -26,10 +26,11 @@ namespace OpenTracing.Contrib.LocalTracers.Console
             ColoredConsoleTracerDecoration.SetTagSerializer setTagSerializer = GetSetTagSerializer(config.DataSerialization.SetTag);
 
             return new ColoredConsoleTracerDecoration(
-                colorChooser,
-                logSerializer,
-                textFormatter,
-                setTagSerializer);
+                    colorChooser,
+                    logSerializer,
+                    textFormatter,
+                    setTagSerializer)
+                .ToPublicType();
         }
 
         private static ColoredConsoleTracerDecoration.ColorChooser GetColorChooser(

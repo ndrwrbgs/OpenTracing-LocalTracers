@@ -6,7 +6,7 @@ namespace OpenTracing.Contrib.LocalTracers
     /// Bridge between the delegate based mechanisms of <see cref="OpenTracing.Contrib.Decorators"/> and
     /// ObjectOriented classes
     /// </summary>
-    public interface ITracerDecoration
+    internal interface ITracerDecoration
     {
         OnSpanLog OnSpanLog { get; }
         OnSpanSetTag OnSpanSetTag { get; }

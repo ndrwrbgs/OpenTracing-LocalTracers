@@ -11,7 +11,7 @@ namespace OpenTracing.Contrib.LocalTracers
     {
         [NotNull]
         public static ITracer Decorate(
-            [NotNull] this ITracerDecoration source,
+            [NotNull] this TracerDecoration source,
             [NotNull] ITracer target)
         {
             return Decorate(target, source);
@@ -20,8 +20,10 @@ namespace OpenTracing.Contrib.LocalTracers
         [NotNull]
         public static ITracer Decorate(
             [NotNull] this ITracer source,
-            [NotNull] ITracerDecoration decoration)
+            [NotNull] TracerDecoration publicDecoration)
         {
+            var decoration = publicDecoration as ITracerDecoration;
+
             var builder = new TracerDecoratorBuilder(source);
 
             // For performance, to avoid a level of indirection when not needed
@@ -73,6 +75,17 @@ namespace OpenTracing.Contrib.LocalTracers
                 return builder
                     .Build();
             }
+        }
+
+        internal static TracerDecoration ToPublicType(this ITracerDecoration interfaceType)
+        {
+            return new TracerDecoration(
+                interfaceType.OnSpanLog,
+                interfaceType.OnSpanSetTag,
+                interfaceType.OnSpanFinished,
+                interfaceType.OnSpanStarted,
+                interfaceType.OnSpanActivated,
+                interfaceType.OnSpanStartedWithFinishCallback);
         }
     }
 }

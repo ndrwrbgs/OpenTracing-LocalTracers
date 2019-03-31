@@ -9,11 +9,11 @@ namespace OpenTracing.Contrib.LocalTracers.File
     {
         [NotNull]
         [PublicAPI]
-        public static ITracerDecoration Create(FileElement config)
+        public static TracerDecoration Create(FileElement config)
         {
             if (!config.Enabled)
             {
-                return NoopTracerDecorationFactory.Instance;
+                return NoopTracerDecorationFactory.Instance.ToPublicType();
             }
 
             if (!Directory.Exists(config.RootLocation.Path))
@@ -21,7 +21,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
                 if (!config.RootLocation.CreateIfNotExists)
                 {
                     // No output location and configured not to make it, return noop
-                    return NoopTracerDecorationFactory.Instance;
+                    return NoopTracerDecorationFactory.Instance.ToPublicType();
                 }
                 else
                 {
@@ -34,7 +34,8 @@ namespace OpenTracing.Contrib.LocalTracers.File
             {
                 case OutputMode.Csv:
                     return new CsvFileTracerDecoration(
-                        fileOutputHelper.WriteToFile);
+                            fileOutputHelper.WriteToFile)
+                        .ToPublicType();
                 default:
                     throw new ArgumentOutOfRangeException();
             }
