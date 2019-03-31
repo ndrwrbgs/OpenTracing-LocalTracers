@@ -33,6 +33,8 @@ namespace OpenTracing.Contrib.LocalTracers.File
             FileStream fileStream = GetCachedFileStream(filePath);
             using (var streamWriter = new StreamWriter(fileStream, UTF8NoBOM, 1024, leaveOpen: true))
             {
+                // We need to lock since we are using Streams rather than, say Console that does locking for us, otherwise
+                // various lines may get intermingled (another thread's line starts in the middle of outputting the previous)
                 lock (fileStream)
                 {
                     streamWriter.WriteLine(fullLine);
