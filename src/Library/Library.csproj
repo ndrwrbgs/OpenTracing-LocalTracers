@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net4.5</TargetFrameworks>
+    <TargetFrameworks>net45</TargetFrameworks>
     <RootNamespace>OpenTracing.Contrib.LocalTracers</RootNamespace>
     <AssemblyName>OpenTracing.Contrib.LocalTracers</AssemblyName>
   </PropertyGroup>
