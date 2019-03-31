@@ -3,6 +3,7 @@ using OpenTracing.Contrib.Decorators;
 
 namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System.Buffers;
     using System.IO;
     using System.Text;
 
@@ -19,24 +20,53 @@ namespace OpenTracing.Contrib.LocalTracers.File
         {
             this.writeToFile = writeToFile;
         }
+
+        // Can shard if we see this in performance traces, but it's not highly likely... it serves it's goal (of fewer memory allocations)
+        private static ArrayPool<string> arrayPool = ArrayPool<string>.Shared;
             
         OnSpanLog ITracerDecoration.OnSpanLog =>
             (span, operationName, timestamp, fields) =>
             {
-                this.WriteLine(
-                    span,
-                    "Log",
-                    SeparateSpanLogFieldsForCsv(fields));
+                var fieldsSeparatedForCsv = arrayPool.Rent(fields.Length * 2);
+                try
+                {
+                    for (var index = 0; index < fields.Length; index++)
+                    {
+                        var field = fields[index];
+                        fieldsSeparatedForCsv[index * 2] = field.key;
+                        fieldsSeparatedForCsv[index * 2 + 1] = field.value?.ToString();
+                    }
+
+                    this.WriteLine(
+                        span,
+                        "Log",
+                        fieldsSeparatedForCsv,
+                        fields.Length * 2);
+                }
+                finally
+                {
+                    arrayPool.Return(fieldsSeparatedForCsv);
+                }
             };
 
         OnSpanSetTag ITracerDecoration.OnSpanSetTag =>
             (span, operationName, value) =>
             {
-                this.WriteLine(
-                    span,
-                    "Tag",
-                    value.key,
-                    value.value?.ToString());
+                var array = arrayPool.Rent(2);
+                try
+                {
+                    array[0] = value.key;
+                    array[1] = value.value?.ToString();
+                    this.WriteLine(
+                        span,
+                        "Tag",
+                        array,
+                        2);
+                }
+                finally
+                {
+                    arrayPool.Return(array);
+                }
             };
 
         OnSpanFinished ITracerDecoration.OnSpanFinished =>
@@ -59,33 +89,47 @@ namespace OpenTracing.Contrib.LocalTracers.File
         OnSpanStarted ITracerDecoration.OnSpanStarted => null;
         OnSpanStartedWithFinishCallback ITracerDecoration.OnSpanStartedWithFinishCallback => null;
 
-        private static string[] SeparateSpanLogFieldsForCsv(LogKeyValue[] fields)
-        {
-            var fieldsSeparatedForCsv = new string[fields.Length * 2];
-            for (var index = 0; index < fields.Length; index++)
-            {
-                var field = fields[index];
-                fieldsSeparatedForCsv[index * 2] = field.key;
-                fieldsSeparatedForCsv[index * 2 + 1] = field.value?.ToString();
-            }
-
-            return fieldsSeparatedForCsv;
-        }
-
         private void WriteLine(
             ISpan span,
             string type,
-            params string[] items)
+            string[] items,
+            int itemsCount)
         {
             string forTraceId = span.Context.TraceId;
             string fileName = forTraceId + ".csv";
 
-            string fullLine = this.GetSerializedOutput(span, type, items);
+            string fullLine = this.GetSerializedOutput(span, type, items, itemsCount);
 
             this.writeToFile(fileName, fullLine);
         }
 
-        private string GetSerializedOutput(ISpan span, string type, string[] items)
+        // TODO: The quick-and-dirty "make this performant" made this copy-paste code. Fix that
+        private void WriteLine(
+            ISpan span,
+            string type,
+            string item)
+        {
+            string forTraceId = span.Context.TraceId;
+            string fileName = forTraceId + ".csv";
+
+            string fullLine = this.GetSerializedOutput(span, type, item);
+
+            this.writeToFile(fileName, fullLine);
+        }
+
+        private void WriteLine(
+            ISpan span,
+            string type)
+        {
+            string forTraceId = span.Context.TraceId;
+            string fileName = forTraceId + ".csv";
+
+            string fullLine = this.GetSerializedOutput(span, type);
+
+            this.writeToFile(fileName, fullLine);
+        }
+
+        private string GetSerializedOutput(ISpan span, string type, string[] items, int itemsCount)
         {
             string spanId = span.Context.SpanId;
 
@@ -98,7 +142,50 @@ namespace OpenTracing.Contrib.LocalTracers.File
                     csv.WriteField(spanId);
                     csv.WriteField(type);
 
-                    foreach (var item in items) csv.WriteField(item);
+                    for (var index = 0; index < itemsCount; index++)
+                    {
+                        var item = items[index];
+                        csv.WriteField(item);
+                    }
+                }
+            }
+
+            string fullLine = resultBuilder.ToString();
+            return fullLine;
+        }
+
+        private string GetSerializedOutput(ISpan span, string type, string item)
+        {
+            string spanId = span.Context.SpanId;
+
+            StringBuilder resultBuilder = new StringBuilder();
+            using (var writer = new StringWriter(resultBuilder))
+            {
+                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                {
+                    csv.WriteField(DateTime.Now.ToString("O"));
+                    csv.WriteField(spanId);
+                    csv.WriteField(type);
+                    csv.WriteField(item);
+                }
+            }
+
+            string fullLine = resultBuilder.ToString();
+            return fullLine;
+        }
+
+        private string GetSerializedOutput(ISpan span, string type)
+        {
+            string spanId = span.Context.SpanId;
+
+            StringBuilder resultBuilder = new StringBuilder();
+            using (var writer = new StringWriter(resultBuilder))
+            {
+                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                {
+                    csv.WriteField(DateTime.Now.ToString("O"));
+                    csv.WriteField(spanId);
+                    csv.WriteField(type);
                 }
             }
 
