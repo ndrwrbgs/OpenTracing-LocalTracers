@@ -7,6 +7,8 @@ using OpenTracing.Mock;
 
 namespace TestApp
 {
+    using System.Collections.Generic;
+
     internal static class Program
     {
         private static void Main(string[] args)
@@ -18,6 +20,15 @@ namespace TestApp
 
             using (tracer.BuildSpan("test").StartActive())
             {
+                tracer.ActiveSpan.Log(
+                    new[]
+                    {
+                        new KeyValuePair<string, object>("a", "b"), 
+                        new KeyValuePair<string, object>("b", "b"), 
+                        new KeyValuePair<string, object>("c", "b"), 
+                        new KeyValuePair<string, object>("d", "b"), 
+                    });
+
                 Console.WriteLine("Inside span");
                 using (tracer.BuildSpan("inner")
                     .WithTag("foo", "bar,\nhi")

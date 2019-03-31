@@ -8,6 +8,9 @@ using OpenTracing.Contrib.LocalTracers.Config.Console;
 
 namespace OpenTracing.Contrib.LocalTracers.Console
 {
+    using System.Buffers;
+    using System.Runtime.CompilerServices;
+
     public static class ColoredConsoleTracerDecorationFactory
     {
         [NotNull]
@@ -143,12 +146,49 @@ namespace OpenTracing.Contrib.LocalTracers.Console
             }
         }
 
+        private static readonly ArrayPool<string> arrayPool = ArrayPool<string>.Create();
+
         private static ColoredConsoleTracerDecoration.LogSerializer GetLogSerializer(LogDataSerialization mode)
         {
             switch (mode)
             {
                 case LogDataSerialization.Simple:
-                    return fields => string.Join(", ", fields.Select(field => $"{field.key} = {field.value}"));
+                    // Translation of the following, for performance, could import something like FastLinq and my array pool utilities for string.Join, but let's avoid the dependencies
+                    ////return fields => string.Join(", ", fields.Select(field => $"{field.key} = {field.value}"));
+                    return fields =>
+                    {
+                        // From simple benchmarks, this is about 50% faster and less memory than string.Join approach
+                        const int partsPerField = 4;
+                        int stringPartsElementCount = fields.Length * partsPerField - 1; // No separator for the last entry
+
+                        var arrayOfStringParts = arrayPool.Rent(stringPartsElementCount);
+                        try
+                        {
+                            for (int i = 0; i < fields.Length; i++)
+                            {
+                                var field = fields[i];
+
+                                // Breaking apart the transformation $"{field.key} = {field.value}"
+                                var indexInArrayOfStringParts = i * partsPerField;
+                                arrayOfStringParts[indexInArrayOfStringParts] = field.key;
+                                arrayOfStringParts[indexInArrayOfStringParts + 1] = " = ";
+                                arrayOfStringParts[indexInArrayOfStringParts + 2] = field.value?.ToString();
+
+                                // If more items, add separator
+                                if (i < fields.Length - 1)
+                                {
+                                    arrayOfStringParts[indexInArrayOfStringParts + 3] = ", ";
+                                }
+                            }
+
+                            // Faster than string.Concat for some concerning reason
+                            return string.Join(string.Empty, arrayOfStringParts, 0, stringPartsElementCount);
+                        }
+                        finally
+                        {
+                            arrayPool.Return(arrayOfStringParts);
+                        }
+                    };
                 case LogDataSerialization.Json:
                     return JsonConvert.SerializeObject;
                 case LogDataSerialization.SimplifySingleKvpAndEventsOtherwiseJson:
