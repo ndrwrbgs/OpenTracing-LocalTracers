@@ -104,7 +104,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
         {
             // hi -> hi
             // foo,"bar -> "foo,""bar"
-            if (item.Contains(",") || item.Contains("\""))
+            if (item.Contains(",") || item.Contains("\"") || item.Contains("\n"))
             {
                 // Contains special character, escape double quotes and surround with quotes
                 return "\"" + item.Replace("\"", "\"\"") + "\"";
