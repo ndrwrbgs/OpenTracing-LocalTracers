@@ -5,6 +5,11 @@ using OpenTracing.Contrib.Decorators;
 
 namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System.IO;
+    using System.Text;
+
+    using CsvHelper;
+
     internal sealed class CsvFileTracerDecoration : ITracerDecoration
     {
         public delegate void WriteToFile(string maybeInvalidFileName, string text);
@@ -86,31 +91,21 @@ namespace OpenTracing.Contrib.LocalTracers.File
         {
             string spanId = span.Context.SpanId;
 
-            IList<string> allItems = new List<string>();
-            allItems.Add(DateTime.Now.ToString("O"));
-            allItems.Add(spanId);
-
-            allItems.Add(type);
-
-            foreach (var item in items) allItems.Add(item);
-
-            string fullLine = String.Join(
-                ",",
-                allItems.Select(CsvEscape));
-            return fullLine;
-        }
-
-        private static string CsvEscape(string item)
-        {
-            // hi -> hi
-            // foo,"bar -> "foo,""bar"
-            if (item.Contains(",") || item.Contains("\"") || item.Contains("\n"))
+            StringBuilder resultBuilder = new StringBuilder();
+            using (var writer = new StringWriter(resultBuilder))
             {
-                // Contains special character, escape double quotes and surround with quotes
-                return "\"" + item.Replace("\"", "\"\"") + "\"";
+                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                {
+                    csv.WriteField(DateTime.Now.ToString("O"));
+                    csv.WriteField(spanId);
+                    csv.WriteField(type);
+
+                    foreach (var item in items) csv.WriteField(item);
+                }
             }
 
-            return item;
+            string fullLine = resultBuilder.ToString();
+            return fullLine;
         }
     }
 }

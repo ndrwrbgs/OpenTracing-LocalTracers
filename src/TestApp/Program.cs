@@ -20,7 +20,7 @@ namespace TestApp
             {
                 Console.WriteLine("Inside span");
                 using (tracer.BuildSpan("inner")
-                    .WithTag("foo", "bar")
+                    .WithTag("foo", "bar,\nhi")
                     .StartActive())
                 {
                     Console.WriteLine("Inside inner");
