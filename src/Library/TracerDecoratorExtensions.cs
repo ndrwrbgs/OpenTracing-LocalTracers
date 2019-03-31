@@ -11,6 +11,14 @@ namespace OpenTracing.Contrib.LocalTracers
     {
         [NotNull]
         public static ITracer Decorate(
+            [NotNull] this ITracerDecoration source,
+            [NotNull] ITracer target)
+        {
+            return Decorate(target, source);
+        }
+
+        [NotNull]
+        public static ITracer Decorate(
             [NotNull] this ITracer source,
             [NotNull] ITracerDecoration decoration)
         {
