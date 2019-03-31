@@ -71,13 +71,10 @@ namespace OpenTracing.Contrib.LocalTracers.File
 
         private static string CleanForWindowsFileName(string fileName)
         {
-            IEnumerable<char> invalidCharacters = Path.GetInvalidFileNameChars().Union(Path.GetInvalidPathChars());
-            foreach (var c in invalidCharacters)
-            {
-                fileName = fileName.Replace(c, '_');
-            }
-
-            return fileName;
+            // Borrowed from https://stackoverflow.com/a/23182807, https://stackoverflow.com/a/12800424, and https://stackoverflow.com/a/13617375 (though the last de-dupes consecutive invalid chars)
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            string newName = string.Join("_", fileName.Split(invalidCharacters));
+            return newName;
         }
     }
 }
