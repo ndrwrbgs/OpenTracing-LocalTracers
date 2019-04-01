@@ -6,7 +6,7 @@
     <RootNamespace>OpenTracing.Contrib.LocalTracers</RootNamespace>
     <AssemblyName>OpenTracing.Contrib.LocalTracers</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>ndrwrbgs</Authors>
     <Company />
     <Product />
