@@ -47,7 +47,16 @@ namespace OpenTracing.Contrib.LocalTracers.File
             lock (fileOutputStreamCache)
             {
                 var valueIfNotExists = new Lazy<FileStream>(
-                    () => System.IO.File.Open(filePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
+                    () =>
+                    {
+                        // TODO: This is really nooooot the way we want to do this, but it's faster to code right now
+                        var baseDir = Path.GetDirectoryName(filePath);
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var guid = Guid.NewGuid().ToString("N");
+                        var full = Path.Combine(baseDir, fileName, guid + Path.GetExtension(filePath));
+                        Directory.CreateDirectory(Path.GetDirectoryName(full));
+                        return System.IO.File.Open(full, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    });
                 lazyFileStream = (Lazy<FileStream>) fileOutputStreamCache
                     .AddOrGetExisting(
                         filePath,

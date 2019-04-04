@@ -6,7 +6,7 @@
     <RootNamespace>OpenTracing.Contrib.LocalTracers</RootNamespace>
     <AssemblyName>OpenTracing.Contrib.LocalTracers</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Authors>ndrwrbgs</Authors>
     <Company />
     <Product />
@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="3.0.0" />
+    <PackageReference Include="CsvHelper" Version="3.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="6.0.1" />
     <PackageReference Include="OpenTracing" Version="0.12.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2019.1.1">
