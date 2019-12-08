@@ -1,9 +1,10 @@
-﻿using System;
-using System.Text;
-using OpenTracing.Contrib.Decorators;
-
-namespace OpenTracing.Contrib.LocalTracers.Console
+﻿namespace OpenTracing.Contrib.LocalTracers.Console
 {
+    using System;
+    using System.Text;
+
+    using OpenTracing.Contrib.Decorators;
+
     /// <summary>
     /// A basic <see cref="ITracerDecoration"/> class with an attempt to keep everything configurable as input.
     /// Compresses the 4 decoration calls into one <see cref="Write"/> call by using a <see cref="OutputCategory"/>
@@ -65,15 +66,15 @@ namespace OpenTracing.Contrib.LocalTracers.Console
 
             lock (this.consoleLock)
             {
-                var prev = System.Console.ForegroundColor;
-                System.Console.ForegroundColor = foregroundColor;
+                var prev = Console.ForegroundColor;
+                Console.ForegroundColor = foregroundColor;
                 try
                 {
-                    System.Console.WriteLine(formattedText);
+                    Console.WriteLine(formattedText);
                 }
                 finally
                 {
-                    System.Console.ForegroundColor = prev;
+                    Console.ForegroundColor = prev;
                 }
             }
         }

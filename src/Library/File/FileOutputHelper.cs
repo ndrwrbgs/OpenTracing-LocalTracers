@@ -1,10 +1,10 @@
-﻿using System;
-using System.IO;
-using System.Runtime.Caching;
-using System.Text;
-
-namespace OpenTracing.Contrib.LocalTracers.File
+﻿namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System;
+    using System.IO;
+    using System.Runtime.Caching;
+    using System.Text;
+
     internal sealed class FileOutputHelper
     {
         private readonly MemoryCache fileOutputStreamCache = new MemoryCache("FileOutputStreamCache");
@@ -23,9 +23,9 @@ namespace OpenTracing.Contrib.LocalTracers.File
         public void WriteToFile(string maybeInvalidFileName, string fullLine)
         {
             var outputFileName = CleanForWindowsFileName(maybeInvalidFileName);
-            var filePath = Path.Combine(rootLocation, outputFileName);
+            var filePath = Path.Combine(this.rootLocation, outputFileName);
 
-            FileStream fileStream = GetCachedFileStream(filePath);
+            FileStream fileStream = this.GetCachedFileStream(filePath);
             using (var streamWriter = new StreamWriter(fileStream, Utf8NoBom, 1024, leaveOpen: true))
             {
                 // We need to lock since we are using Streams rather than, say Console that does locking for us, otherwise
@@ -44,7 +44,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             // we can't simply do !Contains then Add either since the eviction of the cache could happen between those statements
             // Therefore, using a Lazy since we can create multiple of those no worries
             Lazy<FileStream> lazyFileStream;
-            lock (fileOutputStreamCache)
+            lock (this.fileOutputStreamCache)
             {
                 var valueIfNotExists = new Lazy<FileStream>(
                     () =>
@@ -55,9 +55,9 @@ namespace OpenTracing.Contrib.LocalTracers.File
                         var guid = Guid.NewGuid().ToString("N");
                         var full = Path.Combine(baseDir, fileName, guid + Path.GetExtension(filePath));
                         Directory.CreateDirectory(Path.GetDirectoryName(full));
-                        return System.IO.File.Open(full, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                        return File.Open(full, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                     });
-                lazyFileStream = (Lazy<FileStream>) fileOutputStreamCache
+                lazyFileStream = (Lazy<FileStream>) this.fileOutputStreamCache
                     .AddOrGetExisting(
                         filePath,
                         valueIfNotExists,

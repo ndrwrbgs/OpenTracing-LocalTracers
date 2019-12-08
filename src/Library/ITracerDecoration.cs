@@ -1,7 +1,7 @@
-﻿using OpenTracing.Contrib.Decorators;
-
-namespace OpenTracing.Contrib.LocalTracers
+﻿namespace OpenTracing.Contrib.LocalTracers
 {
+    using OpenTracing.Contrib.Decorators;
+
     /// <summary>
     /// Bridge between the delegate based mechanisms of <see cref="OpenTracing.Contrib.Decorators"/> and
     /// ObjectOriented classes

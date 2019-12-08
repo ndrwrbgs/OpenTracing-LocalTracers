@@ -1,12 +1,15 @@
-﻿using System;
-using System.Configuration;
-using JetBrains.Annotations;
-using OpenTracing.Contrib.LocalTracers.Config.Utils;
-
-namespace OpenTracing.Contrib.LocalTracers.Config.Console
+﻿namespace OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Console
 {
+    using System;
+    using System.Configuration;
+
+    using JetBrains.Annotations;
+
+    using OpenTracing.Contrib.LocalTracers.Config.Console;
+    using OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Utils;
+
     [PublicAPI]
-    public class ConsoleElement : ConfigurationElement
+    public class ConsoleElement : ConfigurationElement, IConsoleConfiguration
     {
         [ConfigurationProperty("enabled", IsRequired = true)]
         public ConfigurationTextElement<bool> Enabled => (ConfigurationTextElement<bool>) base["enabled"];
@@ -25,5 +28,17 @@ namespace OpenTracing.Contrib.LocalTracers.Config.Console
 
         [ConfigurationProperty("colorsForBasedOnCategoryColorMode", IsRequired = false)]
         public PerCategoryElement<ConsoleColor> ColorsForCategoryTypeColorMode => (PerCategoryElement<ConsoleColor>) base["colorsForBasedOnCategoryColorMode"];
+
+        ColorMode IConsoleConfiguration.ColorMode => this.ColorMode;
+
+        string IConsoleConfiguration.Format => this.Format;
+
+        IPerTraceCategoryConfiguration<bool> IConsoleConfiguration.OutputSpanNameOnCategory => this.OutputSpanNameOnCategory;
+
+        IDataSerializationConfiguration IConsoleConfiguration.DataSerialization => this.DataSerialization;
+
+        IPerTraceCategoryConfiguration<ConsoleColor> IConsoleConfiguration.ColorsForTheBasedOnCategoryColorMode => this.ColorsForCategoryTypeColorMode;
+
+        bool IConsoleConfiguration.Enabled => this.Enabled;
     }
 }

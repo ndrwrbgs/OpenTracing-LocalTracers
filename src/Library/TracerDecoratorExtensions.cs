@@ -1,8 +1,9 @@
-﻿using JetBrains.Annotations;
-using OpenTracing.Contrib.Decorators;
-
-namespace OpenTracing.Contrib.LocalTracers
+﻿namespace OpenTracing.Contrib.LocalTracers
 {
+    using JetBrains.Annotations;
+
+    using OpenTracing.Contrib.Decorators;
+
     /// <summary>
     /// Extensions for helping work with <see cref="TracerDecoratorBuilder"/> and <see cref="ITracerDecoration"/>
     /// </summary>

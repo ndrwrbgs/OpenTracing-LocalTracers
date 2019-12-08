@@ -1,15 +1,17 @@
-﻿using System;
-using System.IO;
-using JetBrains.Annotations;
-using OpenTracing.Contrib.LocalTracers.Config.File;
-
-namespace OpenTracing.Contrib.LocalTracers.File
+﻿namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System;
+    using System.IO;
+
+    using JetBrains.Annotations;
+
+    using OpenTracing.Contrib.LocalTracers.Config.File;
+
     public static class FileTracerDecorationFactory
     {
         [NotNull]
         [PublicAPI]
-        public static TracerDecoration Create(FileElement config)
+        public static TracerDecoration Create(IFileConfiguration config)
         {
             if (!config.Enabled)
             {
@@ -28,9 +30,9 @@ namespace OpenTracing.Contrib.LocalTracers.File
                     Directory.CreateDirectory(config.RootLocation.Path);
                 }
             }
-            
+
             var fileOutputHelper = new FileOutputHelper(config.RootLocation.Path);
-            switch (config.OutputMode.Value)
+            switch (config.OutputMode)
             {
                 case OutputMode.Csv:
                     return new CsvFileTracerDecoration(

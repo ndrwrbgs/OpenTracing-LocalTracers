@@ -1,9 +1,5 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="TracerDecoration.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-// --------------------------------------------------------------------------------------------------------------------
-namespace OpenTracing.Contrib.LocalTracers {
+﻿namespace OpenTracing.Contrib.LocalTracers
+{
     using OpenTracing.Contrib.Decorators;
 
     /// <summary>
@@ -33,7 +29,13 @@ namespace OpenTracing.Contrib.LocalTracers {
 
         OnSpanStartedWithFinishCallback ITracerDecoration.OnSpanStartedWithFinishCallback => this.onSpanStartedWithFinishCallback;
 
-        internal TracerDecoration(OnSpanLog onSpanLog, OnSpanSetTag onSpanSetTag, OnSpanFinished onSpanFinished, OnSpanStarted onSpanStarted, OnSpanActivated onSpanActivated, OnSpanStartedWithFinishCallback onSpanStartedWithFinishCallback)
+        internal TracerDecoration(
+            OnSpanLog onSpanLog,
+            OnSpanSetTag onSpanSetTag,
+            OnSpanFinished onSpanFinished,
+            OnSpanStarted onSpanStarted,
+            OnSpanActivated onSpanActivated,
+            OnSpanStartedWithFinishCallback onSpanStartedWithFinishCallback)
         {
             this.onSpanLog = onSpanLog;
             this.onSpanSetTag = onSpanSetTag;

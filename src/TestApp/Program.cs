@@ -9,14 +9,43 @@ namespace TestApp
 {
     using System.Collections.Generic;
 
+    using OpenTracing.Contrib.LocalTracers.Config;
+    using OpenTracing.Contrib.LocalTracers.Config.Builder;
+    using OpenTracing.Contrib.LocalTracers.Config.Console;
+    using OpenTracing.Contrib.LocalTracers.Config.File;
+    using OpenTracing.Contrib.LocalTracers.Config.System_Configuration;
+
     internal static class Program
     {
         private static void Main(string[] args)
         {
             var tracingConfigurationSection = ((TracingConfigurationSection) ConfigurationManager.GetSection("tracing"));
+            IConsoleConfiguration consoleConfiguration = tracingConfigurationSection.Console;
+            IFileConfiguration fileElement = tracingConfigurationSection.File;
+
+            var builder = TracingConfigurationBuilder.Instance
+                // no file tracing
+                //.WithFileTracing
+                .WithConsoleTracing(
+                    "[{date:h:mm:ss tt}] {spanId}{spanIdFloatPadding} | {logCategory}{logCategoryPadding} | {outputData}",
+                    settings => settings
+                        .WithColorMode(ColorMode.BasedOnCategory)
+                        .WithColorsForTheBasedOnCategoryColorMode(
+                            ConsoleColor.Green,
+                            ConsoleColor.Red,
+                            ConsoleColor.Magenta,
+                            ConsoleColor.Blue)
+                        .WithOutputSpanNameOnCategory(
+                            activated: true)
+                        .WithDataSerialization(
+                            SetTagDataSerialization.Simple,
+                            LogDataSerialization.Simple));
+            consoleConfiguration = builder.BuildConsoleConfiguration();
+            fileElement = builder.BuildFileConfiguration();
+
             var tracer = new MockTracer()
-                .Decorate(ColoredConsoleTracerDecorationFactory.Create(tracingConfigurationSection.Console))
-                .Decorate(FileTracerDecorationFactory.Create(tracingConfigurationSection.File));
+                .Decorate(ColoredConsoleTracerDecorationFactory.Create(consoleConfiguration))
+                .Decorate(FileTracerDecorationFactory.Create(fileElement));
 
             using (tracer.BuildSpan("test").StartActive())
             {

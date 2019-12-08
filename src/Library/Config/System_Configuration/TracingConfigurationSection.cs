@@ -1,9 +1,10 @@
-﻿using System.Configuration;
-using OpenTracing.Contrib.LocalTracers.Config.Console;
-using OpenTracing.Contrib.LocalTracers.Config.File;
-
-namespace TestApp
+﻿namespace OpenTracing.Contrib.LocalTracers.Config.System_Configuration
 {
+    using System.Configuration;
+
+    using OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Console;
+    using OpenTracing.Contrib.LocalTracers.Config.System_Configuration.File;
+
     public class TracingConfigurationSection : ConfigurationSection
     {
         [ConfigurationProperty("console", IsRequired = true)]

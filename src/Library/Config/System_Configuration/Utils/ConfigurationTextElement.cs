@@ -1,10 +1,11 @@
-﻿using System;
-using System.Configuration;
-using System.Xml;
-using JetBrains.Annotations;
-
-namespace OpenTracing.Contrib.LocalTracers.Config.Utils
+﻿namespace OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Utils
 {
+    using System;
+    using System.Configuration;
+    using System.Xml;
+
+    using JetBrains.Annotations;
+
     [PublicAPI]
     public class ConfigurationTextElement<T> : ConfigurationElement
     {

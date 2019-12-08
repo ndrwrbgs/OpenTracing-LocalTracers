@@ -1,11 +1,14 @@
-﻿using System.Configuration;
-using JetBrains.Annotations;
-using OpenTracing.Contrib.LocalTracers.Config.Utils;
-
-namespace OpenTracing.Contrib.LocalTracers.Config.Console
+﻿namespace OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Console
 {
+    using System.Configuration;
+
+    using JetBrains.Annotations;
+
+    using OpenTracing.Contrib.LocalTracers.Config.Console;
+    using OpenTracing.Contrib.LocalTracers.Config.System_Configuration.Utils;
+
     [PublicAPI]
-    public class PerCategoryElement<T> : ConfigurationElement
+    public class PerCategoryElement<T> : ConfigurationElement, IPerTraceCategoryConfiguration<T>
     {
         [ConfigurationProperty("Activated", IsRequired = false)]
         public ConfigurationTextElement<T> Activated => (ConfigurationTextElement<T>) base["Activated"];
@@ -18,5 +21,13 @@ namespace OpenTracing.Contrib.LocalTracers.Config.Console
 
         [ConfigurationProperty("Log", IsRequired = false)]
         public ConfigurationTextElement<T> Log => (ConfigurationTextElement<T>) base["Log"];
+
+        T IPerTraceCategoryConfiguration<T>.Activated => this.Activated;
+
+        T IPerTraceCategoryConfiguration<T>.Finished => this.Finished;
+
+        T IPerTraceCategoryConfiguration<T>.SetTag => this.SetTag;
+
+        T IPerTraceCategoryConfiguration<T>.Log => this.Log;
     }
 }

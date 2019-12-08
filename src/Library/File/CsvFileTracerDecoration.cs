@@ -1,13 +1,13 @@
-﻿using System;
-using OpenTracing.Contrib.Decorators;
-
-namespace OpenTracing.Contrib.LocalTracers.File
+﻿namespace OpenTracing.Contrib.LocalTracers.File
 {
+    using System;
     using System.Buffers;
     using System.IO;
     using System.Text;
 
     using CsvHelper;
+
+    using OpenTracing.Contrib.Decorators;
 
     internal sealed class CsvFileTracerDecoration : ITracerDecoration
     {
@@ -22,8 +22,8 @@ namespace OpenTracing.Contrib.LocalTracers.File
         }
 
         // Can shard if we see this in performance traces, but it's not highly likely... it serves it's goal (of fewer memory allocations)
-        private static ArrayPool<string> arrayPool = ArrayPool<string>.Shared;
-            
+        private static readonly ArrayPool<string> arrayPool = ArrayPool<string>.Shared;
+
         OnSpanLog ITracerDecoration.OnSpanLog =>
             (span, operationName, timestamp, fields) =>
             {
@@ -136,7 +136,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             StringBuilder resultBuilder = new StringBuilder();
             using (var writer = new StringWriter(resultBuilder))
             {
-                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                using (var csv = new CsvWriter(writer) {Configuration = {SanitizeForInjection = false}})
                 {
                     csv.WriteField(DateTime.Now.ToString("O"));
                     csv.WriteField(spanId);
@@ -161,7 +161,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             StringBuilder resultBuilder = new StringBuilder();
             using (var writer = new StringWriter(resultBuilder))
             {
-                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                using (var csv = new CsvWriter(writer) {Configuration = {SanitizeForInjection = false}})
                 {
                     csv.WriteField(DateTime.Now.ToString("O"));
                     csv.WriteField(spanId);
@@ -181,7 +181,7 @@ namespace OpenTracing.Contrib.LocalTracers.File
             StringBuilder resultBuilder = new StringBuilder();
             using (var writer = new StringWriter(resultBuilder))
             {
-                using (var csv = new CsvWriter(writer) { Configuration = { SanitizeForInjection = false } })
+                using (var csv = new CsvWriter(writer) {Configuration = {SanitizeForInjection = false}})
                 {
                     csv.WriteField(DateTime.Now.ToString("O"));
                     csv.WriteField(spanId);

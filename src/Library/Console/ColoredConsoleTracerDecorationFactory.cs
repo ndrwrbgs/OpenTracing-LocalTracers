@@ -1,28 +1,29 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
-using OpenTracing.Contrib.LocalTracers.Config.Console;
-
-namespace OpenTracing.Contrib.LocalTracers.Console
+﻿namespace OpenTracing.Contrib.LocalTracers.Console
 {
+    using System;
     using System.Buffers;
-    using System.Runtime.CompilerServices;
+    using System.Linq;
+    using System.Text;
+    using System.Text.RegularExpressions;
+
+    using JetBrains.Annotations;
+
+    using Newtonsoft.Json;
+
+    using OpenTracing.Contrib.LocalTracers.Config.Console;
 
     public static class ColoredConsoleTracerDecorationFactory
     {
         [NotNull]
         [PublicAPI]
-        public static TracerDecoration Create(ConsoleElement config)
+        public static TracerDecoration Create(IConsoleConfiguration config)
         {
             if (!config.Enabled)
             {
                 return NoopTracerDecorationFactory.Instance.ToPublicType();
             }
 
-            ColoredConsoleTracerDecoration.ColorChooser colorChooser = GetColorChooser(config.ColorMode, () => config.ColorsForCategoryTypeColorMode);
+            ColoredConsoleTracerDecoration.ColorChooser colorChooser = GetColorChooser(config.ColorMode, () => config.ColorsForTheBasedOnCategoryColorMode);
             ColoredConsoleTracerDecoration.TextFormatter textFormatter = GetTextFormatter(config.Format, config.OutputSpanNameOnCategory);
 
             ColoredConsoleTracerDecoration.LogSerializer logSerializer = GetLogSerializer(config.DataSerialization.Log);
@@ -38,41 +39,41 @@ namespace OpenTracing.Contrib.LocalTracers.Console
 
         private static ColoredConsoleTracerDecoration.ColorChooser GetColorChooser(
             ColorMode configColorMode,
-            Func<PerCategoryElement<ConsoleColor>> configColorsForLogCategoryTypeColorMode)
+            Func<IPerTraceCategoryConfiguration<ConsoleColor>> configColorsForLogCategoryTypeColorMode)
         {
             switch (configColorMode)
             {
                 case ColorMode.BasedOnCategory:
-                    PerCategoryElement<ConsoleColor> configForMode = configColorsForLogCategoryTypeColorMode();
+                    IPerTraceCategoryConfiguration<ConsoleColor> configForMode = configColorsForLogCategoryTypeColorMode();
                     return GetLogCategoryTypeColorChooser(configForMode);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        private static ColoredConsoleTracerDecoration.ColorChooser GetLogCategoryTypeColorChooser(PerCategoryElement<ConsoleColor> configForMode)
+        private static ColoredConsoleTracerDecoration.ColorChooser GetLogCategoryTypeColorChooser(IPerTraceCategoryConfiguration<ConsoleColor> configForMode)
         {
             return (span, operationName, outputCategory) => configForMode.PerLogCategoryElementToValue(outputCategory);
         }
 
-        private static T PerLogCategoryElementToValue<T>(this PerCategoryElement<T> element, ColoredConsoleTracerDecoration.OutputCategory outputCategory)
+        private static T PerLogCategoryElementToValue<T>(this IPerTraceCategoryConfiguration<T> element, ColoredConsoleTracerDecoration.OutputCategory outputCategory)
         {
             switch (outputCategory)
             {
                 case ColoredConsoleTracerDecoration.OutputCategory.Log:
-                    return element.Log.Value;
+                    return element.Log;
                 case ColoredConsoleTracerDecoration.OutputCategory.SetTag:
-                    return element.SetTag.Value;
+                    return element.SetTag;
                 case ColoredConsoleTracerDecoration.OutputCategory.Activated:
-                    return element.Activated.Value;
+                    return element.Activated;
                 case ColoredConsoleTracerDecoration.OutputCategory.Finished:
-                    return element.Finished.Value;
+                    return element.Finished;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(outputCategory), outputCategory, null);
             }
         }
 
-        private static ColoredConsoleTracerDecoration.TextFormatter GetTextFormatter(string configFormat, PerCategoryElement<bool> configOutputSpanNameOnCategory)
+        private static ColoredConsoleTracerDecoration.TextFormatter GetTextFormatter(string configFormat, IPerTraceCategoryConfiguration<bool> configOutputSpanNameOnCategory)
         {
             int maxSpanIdLengthSeenSoFar = 0;
             object spanIdLengthLock = new object();
