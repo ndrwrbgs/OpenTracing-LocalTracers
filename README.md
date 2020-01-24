@@ -45,7 +45,51 @@ ITracer GetConfiguredTracer(
 
 ## Configuration
 
-### File Configuration
+### Programmatic configuration
+
+Usually in a deployed app you'll want to use app.config, but while testing (which is what this library is targetted at anyway! Silly author, excluding that in the v0!) you'll want to avoid making an app.config if you don't have one already. In that case use code configuration like so:
+
+\[caveat: This is code within a document file, and likely to get out of date. Please use this example + intellisense suggestions in your IDE as guidance rather than expecting it to be copy-paste-runable. For copy-paste-run, see the \*.cs files in the project\]
+```C#
+var builder = TracingConfigurationBuilder.Instance
+    // no file tracing
+    //.WithFileTracing
+    .WithConsoleTracing(
+        "[{date:h:mm:ss tt}] {spanId}{spanIdFloatPadding} | {logCategory}{logCategoryPadding} | {outputData}",
+        settings => settings
+            .WithColorMode(ColorMode.BasedOnCategory)
+            .WithColorsForTheBasedOnCategoryColorMode(
+                ConsoleColor.Green,
+                ConsoleColor.Red,
+                ConsoleColor.Magenta,
+                ConsoleColor.Blue)
+            .WithOutputSpanNameOnCategory(
+                activated: true,
+                finished: true)
+            .WithOutputDurationOnFinished(true)
+            .WithDataSerialization(
+                SetTagDataSerialization.Simple,
+                LogDataSerialization.Simple));
+consoleConfiguration = builder.BuildConsoleConfiguration();
+fileElement = builder.BuildFileConfiguration();
+
+```
+
+### System.Configuration (app.config)
+
+The configuration type is configured like so:
+```xml
+  <configSections>
+    <section name="tracing" type="OpenTracing.Contrib.LocalTracers.Config.System_Configuration.TracingConfigurationSection, OpenTracing.Contrib.LocalTracers"/>
+  </configSections>
+```
+
+You can then read it like so:
+```C#
+((TracingConfigurationSection) ConfigurationManager.GetSection("tracing"));
+```
+
+#### File Configuration
 Example ([latest](https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/master/src/TestApp/App.config#L44-L50))
 ```xml
     <file>
@@ -59,7 +103,7 @@ Example ([latest](https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/mast
     </file>
 ```
 
-### Console Configuration
+#### Console Configuration
 Example ([latest](https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/master/src/TestApp/App.config#L10-L42))
 ```xml
     <console>
@@ -76,7 +120,7 @@ Example ([latest](https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/mast
         <Log>Blue</Log>
       </colorsForBasedOnCategoryColorMode>
 
-      <!-- [4:21:01 pm] | 32   | StartSpan  | Whatever text is configured in the method -->
+      <!-- [4:21:01 pm] | 1.0.2.1   | StartSpan  | Whatever text is configured in the method -->
       <!-- available:
         date<colon><format>
         spanId
@@ -91,14 +135,17 @@ Example ([latest](https://github.com/ndrwrbgs/OpenTracing-LocalTracers/blob/mast
       <outputSpanNameOnLogTypes>
         <!-- available: Activated, Finished, SetTag, Log -->
         <Activated>true</Activated>
+        <Finished>true</Finished>
       </outputSpanNameOnLogTypes>
+
+      <outputDurationOnFinished>true</outputDurationOnFinished>
 
       <dataSerialization>
         <!-- available: Simple, Json. Simple is not machine-parseable -->
-        <SetTag>Json</SetTag>
+        <SetTag>Simple</SetTag>
         <!-- available: SImple, Json, SimplifySingleKvpAndEventsOtherwiseJson -->
         <!-- SimplifySingleKvpAndEventsOtherwiseJson tries to remove json fluff in some scenarios, but reverts to json where needed -->
-        <Log>Json</Log>
+        <Log>Simple</Log>
       </dataSerialization>
     </console>
 ```
