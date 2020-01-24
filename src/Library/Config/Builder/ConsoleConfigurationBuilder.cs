@@ -41,6 +41,7 @@
                     false,
                     false,
                     false),
+                false,
                 new BasicDataSerializationConfiguration(
                     SetTagDataSerialization.Simple,
                     LogDataSerialization.Simple),
@@ -78,6 +79,12 @@
         {
             return this.With(
                 config => config.Format = format);
+        }
+
+        public ConsoleConfigurationBuilder WithOutputDurationOnFinished(bool outputDurationOnFinished)
+        {
+            return this.With(
+                config => config.OutputDurationOnFinished = outputDurationOnFinished);
         }
 
         public ConsoleConfigurationBuilder WithOutputSpanNameOnCategory(

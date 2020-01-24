@@ -11,6 +11,7 @@
         ColorMode ColorMode { get; }
         string Format { get; }
         IPerTraceCategoryConfiguration<bool> OutputSpanNameOnCategory { get; }
+        bool OutputDurationOnFinished { get; }
         IDataSerializationConfiguration DataSerialization { get; }
 
         /// <summary>

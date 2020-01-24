@@ -21,7 +21,10 @@
         public ConfigurationTextElement<string> Format => (ConfigurationTextElement<string>) base["format"];
 
         [ConfigurationProperty("outputSpanNameOnLogTypes", IsRequired = true)]
-        public PerCategoryElement<bool> OutputSpanNameOnCategory => (PerCategoryElement<bool>) base["outputSpanNameOnLogTypes"];
+        public PerCategoryElement<bool> OutputSpanNameOnCategory => (PerCategoryElement<bool>)base["outputSpanNameOnLogTypes"];
+
+        [ConfigurationProperty("outputDurationOnFinished", IsRequired = false)]
+        public ConfigurationTextElement<bool> OutputDurationOnFinished => (ConfigurationTextElement<bool>) base["outputDurationOnFinished"];
 
         [ConfigurationProperty("dataSerialization", IsRequired = true)]
         public DataSerializationElement DataSerialization => (DataSerializationElement) base["dataSerialization"];
@@ -34,6 +37,7 @@
         string IConsoleConfiguration.Format => this.Format;
 
         IPerTraceCategoryConfiguration<bool> IConsoleConfiguration.OutputSpanNameOnCategory => this.OutputSpanNameOnCategory;
+        bool IConsoleConfiguration.OutputDurationOnFinished => this.OutputDurationOnFinished;
 
         IDataSerializationConfiguration IConsoleConfiguration.DataSerialization => this.DataSerialization;
 

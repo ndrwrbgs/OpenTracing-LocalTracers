@@ -6,7 +6,7 @@
     <RootNamespace>OpenTracing.Contrib.LocalTracers</RootNamespace>
     <AssemblyName>OpenTracing.Contrib.LocalTracers</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>ndrwrbgs</Authors>
     <Company />
     <Product />
@@ -14,7 +14,7 @@
     <PackageProjectUrl>https://github.com/ndrwrbgs/OpenTracing-LocalTracers</PackageProjectUrl>
     <PackageIconUrl>http://opentracing.io/img/favicon-32x32.png</PackageIconUrl>
     <Description>ITracer that helps logging to console or disk.</Description>
-    <PackageReleaseNotes>Various bug fixes from https://github.com/ndrwrbgs/OpenTracing-LocalTracers/issues</PackageReleaseNotes>
+    <PackageReleaseNotes>Add ability to output duration for spans on finish</PackageReleaseNotes>
     <Copyright>Copyright 2019</Copyright>
     <PackageTags>OpenTracing</PackageTags>
   </PropertyGroup>

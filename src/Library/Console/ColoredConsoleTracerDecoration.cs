@@ -19,19 +19,39 @@
 
         public delegate StringBuilder TextFormatter(string spanId, string operationName, OutputCategory category, string outputText);
 
+        private const string startTimestampBaggageKey = nameof(ColoredConsoleTracerDecoration) + ".StartTimestamp";
+
         private readonly ColorChooser colorChooser;
         private readonly LogSerializer logSerializer;
         private readonly SetTagSerializer setTagSerializer;
+        private readonly bool outputDurationOnFinished;
         private readonly TextFormatter textFormatter;
 
         private readonly object consoleLock = new object();
 
-        public ColoredConsoleTracerDecoration(ColorChooser colorChooser, LogSerializer logSerializer, TextFormatter textFormatter, SetTagSerializer setTagSerializer)
+        /// <summary>
+        /// Using a field so that we can return null if the feature is not used, which (returning null) allows
+        /// the interceptor to avoid intercepting calls to SpanStarted.
+        /// </summary>
+        private readonly OnSpanStarted onSpanStarted;
+
+        public ColoredConsoleTracerDecoration(
+            ColorChooser colorChooser,
+            LogSerializer logSerializer,
+            TextFormatter textFormatter,
+            SetTagSerializer setTagSerializer,
+            bool outputDurationOnFinished)
         {
             this.colorChooser = colorChooser;
             this.logSerializer = logSerializer;
             this.textFormatter = textFormatter;
             this.setTagSerializer = setTagSerializer;
+            this.outputDurationOnFinished = outputDurationOnFinished;
+
+            if (this.outputDurationOnFinished)
+            {
+                onSpanStarted = (span, operationName) => { span.SetBaggageItem(startTimestampBaggageKey, DateTimeOffset.UtcNow.Ticks.ToString()); };
+            }
         }
 
         internal enum OutputCategory
@@ -49,12 +69,32 @@
             (span, operationName, value) => { this.Write(span, operationName, OutputCategory.SetTag, this.setTagSerializer(value)); };
 
         OnSpanFinished ITracerDecoration.OnSpanFinished =>
-            (span, operationName) => { this.Write(span, operationName, OutputCategory.Finished, null); };
+            (span, operationName) =>
+            {
+                string outputText;
+                if (!this.outputDurationOnFinished)
+                {
+                    outputText = null;
+                }
+                else
+                {
+                    var startTimestampTicksString = span.GetBaggageItem(startTimestampBaggageKey);
+                    var startTimestampTicksLong = long.Parse(startTimestampTicksString);
+                    var startTimestampDateTimeOffset = new DateTimeOffset(startTimestampTicksLong, TimeSpan.Zero /* UTC */);
+
+                    var duration = DateTimeOffset.UtcNow - startTimestampDateTimeOffset;
+
+                    outputText = $"[Duration: {duration:g}]";
+                }
+
+                this.Write(span, operationName, OutputCategory.Finished, outputText);
+            };
 
         OnSpanActivated ITracerDecoration.OnSpanActivated =>
             (span, operationName) => { this.Write(span, operationName, OutputCategory.Activated, null); };
 
-        OnSpanStarted ITracerDecoration.OnSpanStarted => null; // We only care about Activated
+        OnSpanStarted ITracerDecoration.OnSpanStarted => this.onSpanStarted;
+
         OnSpanStartedWithFinishCallback ITracerDecoration.OnSpanStartedWithFinishCallback => null;
 
         private void Write(ISpan span, string operationName, OutputCategory category, string outputText)

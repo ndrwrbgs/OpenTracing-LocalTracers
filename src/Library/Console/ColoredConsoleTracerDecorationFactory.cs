@@ -33,7 +33,8 @@
                     colorChooser,
                     logSerializer,
                     textFormatter,
-                    setTagSerializer)
+                    setTagSerializer,
+                    config.OutputDurationOnFinished)
                 .ToPublicType();
         }
 

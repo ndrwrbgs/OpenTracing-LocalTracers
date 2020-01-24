@@ -36,7 +36,9 @@ namespace TestApp
                             ConsoleColor.Magenta,
                             ConsoleColor.Blue)
                         .WithOutputSpanNameOnCategory(
-                            activated: true)
+                            activated: true,
+                            finished: true)
+                        .WithOutputDurationOnFinished(true)
                         .WithDataSerialization(
                             SetTagDataSerialization.Simple,
                             LogDataSerialization.Simple));
