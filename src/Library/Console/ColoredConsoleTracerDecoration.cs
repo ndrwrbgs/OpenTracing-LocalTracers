@@ -27,8 +27,6 @@
         private readonly bool outputDurationOnFinished;
         private readonly TextFormatter textFormatter;
 
-        private readonly object consoleLock = new object();
-
         /// <summary>
         /// Using a field so that we can return null if the feature is not used, which (returning null) allows
         /// the interceptor to avoid intercepting calls to SpanStarted.
@@ -104,7 +102,7 @@
 
             var formattedText = this.textFormatter(spanId, operationName, category, outputText);
 
-            lock (this.consoleLock)
+            lock (Console.Out)
             {
                 var prev = Console.ForegroundColor;
                 Console.ForegroundColor = foregroundColor;
