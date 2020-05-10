@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace Demo
 {
     using System.IO;
+    using System.Reactive.Linq;
     using System.Threading;
 
     using OpenTracing;
@@ -18,13 +19,121 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            var tracer = DebounceTracerFactory.CreateTracer(
+            //var tracer = DebounceTracerFactory.CreateTracer(
+            //    // This tracer is used for the Active/Inject/Extract/Context implementations
+            //    CvTextWriterTracerFactory.CreateTracer(TextWriter.Null),
+            //    EmitSetTagEvent,
+            //    EmitLogEvent,
+            //    EmitSpan,
+            //    TimeSpan.FromSeconds(0.4));
+
+            (ITracer connectedTracer, IObservable<TraceEvent> eventStream) = TraceToEventStreamAdapter.CreateTracerEventStreamPair(
                 // This tracer is used for the Active/Inject/Extract/Context implementations
-                CvTextWriterTracerFactory.CreateTracer(TextWriter.Null),
-                EmitSetTagEvent,
-                EmitLogEvent,
-                EmitSpan,
-                TimeSpan.FromSeconds(0.4));
+                // TODO: UUUUUGh I expose the cV directly which does NOT maintain a consistent SpanId thanks to cV - need to chop off the ends
+                CvTextWriterTracerFactory.CreateTracer(TextWriter.Null));
+
+            HashSet<string> finishedSpans = new HashSet<string>();
+            HashSet<string> startEmittedSpans = new HashSet<string>();
+
+            string GetSpanId(ISpan span)
+            {
+                return span.Context.SpanId.Substring(0, span.Context.SpanId.LastIndexOf('.'));
+            }
+
+            TimeSpan minimumSpanLength = TimeSpan.FromSeconds(0.4);
+            eventStream
+                // TODO: Do this or make the collections parallel
+                //.ObserveOn(/* something single threaded for simplicity */ )
+                // Record event info when it first happens
+                .Do(
+                    item =>
+                    {
+                        item.Switch(
+                            // we COULD emit tags/logs now if the span start was already emitted, but lets keep all emission in sync
+                            _ => { },
+                            _ => { },
+                            _ => { },
+                            finishedEvent => { finishedSpans.Add(GetSpanId(finishedEvent.Span)); });
+                    })
+                .Delay(minimumSpanLength/* todo: add scheduler */)
+                .Subscribe(
+                    item =>
+                    {
+                        item.Switch(
+                            setTagsEvent =>
+                            {
+                                if (startEmittedSpans.Contains(GetSpanId(setTagsEvent.Span)))
+                                {
+                                    EmitSetTagEvent((setTagsEvent.Span, setTagsEvent.OperationName, setTagsEvent.TagKeyValue));
+                                    return;
+                                }
+
+                                if (setTagsEvent.TagKeyValue.key.StartsWith("error"))
+                                {
+                                    // we emit a start event and the tag
+                                    // TODO: We should have recorded the start time for the span
+                                    DateTimeOffset spanStartTime = DateTimeOffset.Now;
+                                    if (!startEmittedSpans.Contains(GetSpanId(setTagsEvent.Span)))
+                                    {
+                                        EmitSpan((setTagsEvent.Span, setTagsEvent.OperationName, spanStartTime));
+                                        startEmittedSpans.Add(GetSpanId(setTagsEvent.Span));
+                                    }
+
+                                    EmitSetTagEvent((setTagsEvent.Span, setTagsEvent.OperationName, setTagsEvent.TagKeyValue));
+                                }
+                            },
+                            logEvent =>
+                            {
+                                // Right now the code expects log to force emission
+                                if (!startEmittedSpans.Contains(GetSpanId(logEvent.Span)))
+                                {
+                                    // we emit a start event and the log
+                                    // TODO: We should have recorded the start time for the span
+                                    DateTimeOffset spanStartTime = DateTimeOffset.Now;
+                                    EmitSpan((logEvent.Span, logEvent.OperationName, spanStartTime));
+                                    startEmittedSpans.Add(GetSpanId(logEvent.Span));
+                                }
+                                EmitLogEvent((logEvent.Span, logEvent.OperationName, logEvent.Timestamp, logEvent.LogKeyValues));
+                                //if (startEmittedSpans.Contains(logEvent.Span))
+                                //{
+                                //    EmitLogEvent((logEvent.Span, logEvent.OperationName, logEvent.Timestamp, logEvent.LogKeyValues));
+                                //    return;
+                                //}
+                            },
+                            activatedEvent =>
+                            { 
+                                // It was already finished by the time we got the delayed start notification
+                                if (finishedSpans.Contains(GetSpanId(activatedEvent.Span)))
+                                {
+                                    // Too short, ignore
+                                    return;
+                                }
+
+                                // Long enough, emit
+                                if (!startEmittedSpans.Contains(GetSpanId(activatedEvent.Span)))
+                                {
+                                    EmitSpan((activatedEvent.Span, activatedEvent.OperationName, DateTimeOffset.Now));
+                                    startEmittedSpans.Add(GetSpanId(activatedEvent.Span));
+                                }
+                            },
+                            finishedEvent =>
+                            {
+                                if (startEmittedSpans.Contains(GetSpanId(finishedEvent.Span)))
+                                {
+                                    Console.WriteLine($"{finishedEvent.OperationName} finished");
+                                    // Clean up garbage
+                                    startEmittedSpans.Remove(GetSpanId(finishedEvent.Span));
+                                }
+                                
+                                // Clean up garbage
+                                finishedSpans.Remove(GetSpanId(finishedEvent.Span));
+                            });
+                    },
+                    // Subscribe FOREVER (alternatively, drop this and get back an IDisposable)
+                    CancellationToken.None);
+
+            var tracer = connectedTracer;
+
 
             // Parent, will be emitted eventually
             Console.WriteLine("Build parent");
@@ -33,7 +142,7 @@ namespace Demo
                 .StartActive())
             {
                 // Kick off a bunch of short tasks, should not be emitted ever
-                Console.WriteLine("Kick off a bunch of short tasks, should not be emitted ever");
+                tracer.ActiveSpan.Log("Kick off a bunch of short tasks, should not be emitted ever");
                 for (int i = 0; i < 100; i++)
                 {
                     using (tracer.BuildSpan("dontEmit." + i).StartActive())
@@ -42,11 +151,12 @@ namespace Demo
                 }
 
                 // Wait for parent to emit
-                Console.WriteLine("Wait for parent to emit");
-                Thread.Sleep(TimeSpan.FromSeconds(0.5));
+                tracer.ActiveSpan.Log("Wait for slow child to emit");
+                using (tracer.BuildSpan("slow child").StartActive())
+                    Thread.Sleep(TimeSpan.FromSeconds(0.5));
 
                 // Practice a nested child forcing emission due to Log
-                Console.WriteLine("Practice a nested child forcing emission due to Log");
+                tracer.ActiveSpan.Log("Practice a nested child forcing emission due to Log");
                 using (tracer.BuildSpan("logParent").StartActive())
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(0.2));
@@ -57,7 +167,7 @@ namespace Demo
                 }
 
                 // Practice a nested child forcing emission due to SetTag.error
-                Console.WriteLine("Practice a nested child forcing emission due to SetTag.error");
+                tracer.ActiveSpan.Log("Practice a nested child forcing emission due to SetTag.error");
                 using (tracer.BuildSpan("tagParent").StartActive())
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(0.2));
@@ -68,7 +178,7 @@ namespace Demo
                 }
 
                 // Testing that parent-forced emission emits the previous tags
-                Console.WriteLine("Testing that parent-forced emission emits the previous tags");
+                tracer.ActiveSpan.Log("Testing that parent-forced emission emits the previous tags");
                 using (tracer.BuildSpan("tagParentWithTags")
                     .WithTag("some tag", "some value")
                     .StartActive())
@@ -80,6 +190,11 @@ namespace Demo
                     }
                 }
             }
+
+            // an 'end signal' and to wait for it to come through
+            Console.WriteLine(" +++ Flushing telemetry");
+            // TODO: Really we should emit a signal to our subscription and wait for that signal to come through to here
+            Thread.Sleep(TimeSpan.FromTicks((long) (minimumSpanLength.Ticks * 1.5)));
         }
 
         private static void EmitSetTagEvent((ISpan span, string operationName, TagKeyValue tagKeyValue) obj)
