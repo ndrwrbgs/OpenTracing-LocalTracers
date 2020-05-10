@@ -32,15 +32,21 @@ namespace Demo
                 // TODO: UUUUUGh I expose the cV directly which does NOT maintain a consistent SpanId thanks to cV - need to chop off the ends
                 CvTextWriterTracerFactory.CreateTracer(TextWriter.Null));
 
+
+            // These collections are auto-cleaned up (on proper tracing)
             HashSet<string> finishedSpans = new HashSet<string>();
             HashSet<string> startEmittedSpans = new HashSet<string>();
+
+            // This collection is not cleaned. We should instead use some kind of memory-bounded bloom filter due to this
+            // but this is demo code
+            HashSet<object> alreadyEmittedExceptions = new HashSet<object>();
 
             string GetSpanId(ISpan span)
             {
                 return span.Context.SpanId.Substring(0, span.Context.SpanId.LastIndexOf('.'));
             }
 
-            TimeSpan minimumSpanLength = TimeSpan.FromSeconds(0.4);
+            TimeSpan minimumSpanLength = TimeSpan.FromSeconds(0.1);
             eventStream
                 // TODO: Do this or make the collections parallel
                 //.ObserveOn(/* something single threaded for simplicity */ )
@@ -93,7 +99,27 @@ namespace Demo
                                     EmitSpan((logEvent.Span, logEvent.OperationName, spanStartTime));
                                     startEmittedSpans.Add(GetSpanId(logEvent.Span));
                                 }
+
+                                // TODO: We are ignoring the OTHER log KVPs bundled with this, and should not be
+                                var errorObject = logEvent.LogKeyValues.FirstOrDefault(kvp => kvp.key == "error.object");
+                                if (errorObject.value != null)
+                                {
+                                    if (alreadyEmittedExceptions.Contains(errorObject.value))
+                                    {
+                                        EmitLogEvent(
+                                            (logEvent.Span, logEvent.OperationName, logEvent.Timestamp, new LogKeyValue[]
+                                            {
+                                                new LogKeyValue {key = "error.object.short", value = "Omitted because reported by the child"}
+                                            }));
+                                        // Avoid outputting
+                                        return;
+                                    }
+
+                                    alreadyEmittedExceptions.Add(errorObject.value);
+                                }
+
                                 EmitLogEvent((logEvent.Span, logEvent.OperationName, logEvent.Timestamp, logEvent.LogKeyValues));
+
                                 //if (startEmittedSpans.Contains(logEvent.Span))
                                 //{
                                 //    EmitLogEvent((logEvent.Span, logEvent.OperationName, logEvent.Timestamp, logEvent.LogKeyValues));
@@ -136,65 +162,116 @@ namespace Demo
 
 
             // Parent, will be emitted eventually
-            Console.WriteLine("Build parent");
-            using (tracer.BuildSpan("parent")
-                .WithTag("Sample", true)
-                .StartActive())
+            try
             {
-                // Kick off a bunch of short tasks, should not be emitted ever
-                tracer.ActiveSpan.Log("Kick off a bunch of short tasks, should not be emitted ever");
-                for (int i = 0; i < 100; i++)
-                {
-                    using (tracer.BuildSpan("dontEmit." + i).StartActive())
-                    {
-                    }
-                }
-
-                // Wait for parent to emit
-                tracer.ActiveSpan.Log("Wait for slow child to emit");
-                using (tracer.BuildSpan("slow child").StartActive())
-                    Thread.Sleep(TimeSpan.FromSeconds(0.5));
-
-                // Practice a nested child forcing emission due to Log
-                tracer.ActiveSpan.Log("Practice a nested child forcing emission due to Log");
-                using (tracer.BuildSpan("logParent").StartActive())
-                {
-                    Thread.Sleep(TimeSpan.FromSeconds(0.2));
-                    using (tracer.BuildSpan("logger").StartActive())
-                    {
-                        tracer.ActiveSpan.Log("some event");
-                    }
-                }
-
-                // Practice a nested child forcing emission due to SetTag.error
-                tracer.ActiveSpan.Log("Practice a nested child forcing emission due to SetTag.error");
-                using (tracer.BuildSpan("tagParent").StartActive())
-                {
-                    Thread.Sleep(TimeSpan.FromSeconds(0.2));
-                    using (tracer.BuildSpan("tagger").StartActive())
-                    {
-                        tracer.ActiveSpan.SetTag("error.kind", nameof(InvalidOperationException));
-                    }
-                }
-
-                // Testing that parent-forced emission emits the previous tags
-                tracer.ActiveSpan.Log("Testing that parent-forced emission emits the previous tags");
-                using (tracer.BuildSpan("tagParentWithTags")
-                    .WithTag("some tag", "some value")
+                Console.WriteLine("Build parent");
+                using (tracer.BuildSpan("parent")
+                    .WithTag("Sample", true)
                     .StartActive())
                 {
-                    Thread.Sleep(TimeSpan.FromSeconds(0.2));
-                    using (tracer.BuildSpan("tagger").StartActive())
+                    // Kick off a bunch of short tasks, should not be emitted ever
+                    tracer.ActiveSpan.Log("Kick off a bunch of short tasks, should not be emitted ever");
+                    for (int i = 0; i < 100; i++)
                     {
-                        tracer.ActiveSpan.SetTag("error.kind", nameof(Exception));
+                        using (tracer.BuildSpan("dontEmit." + i).StartActive()) { }
                     }
+
+                    // Wait for parent to emit
+                    tracer.ActiveSpan.Log("Wait for slow child to emit");
+                    using (tracer.BuildSpan("slow child").StartActive())
+                        Thread.Sleep(TimeSpan.FromSeconds(0.5));
+
+                    // Practice a nested child forcing emission due to Log
+                    tracer.ActiveSpan.Log("Practice a nested child forcing emission due to Log");
+                    using (tracer.BuildSpan("logParent").StartActive())
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(0.2));
+                        using (tracer.BuildSpan("logger").StartActive())
+                        {
+                            tracer.ActiveSpan.Log("some event");
+                        }
+                    }
+
+                    // Practice a nested child forcing emission due to SetTag.error
+                    tracer.ActiveSpan.Log("Practice a nested child forcing emission due to SetTag.error");
+                    using (tracer.BuildSpan("tagParent").StartActive())
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(0.2));
+                        using (tracer.BuildSpan("tagger").StartActive())
+                        {
+                            tracer.ActiveSpan.SetTag("error.kind", nameof(InvalidOperationException));
+                        }
+                    }
+
+                    // Testing that parent-forced emission emits the previous tags
+                    tracer.ActiveSpan.Log("Testing that parent-forced emission emits the previous tags");
+                    using (tracer.BuildSpan("tagParentWithTags")
+                        .WithTag("some tag", "some value")
+                        .StartActive())
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(0.2));
+                        using (tracer.BuildSpan("tagger").StartActive())
+                        {
+                            tracer.ActiveSpan.SetTag("error.kind", nameof(Exception));
+                        }
+                    }
+
+                    // TODO: Should have been able to keep Console.WriteLine here and have it get picked up appropriately
+                    tracer.ActiveSpan.Log("Throw an exception nested");
+                    Exception testException;
+                    try
+                    {
+                        throw new Exception("Testing exceptions");
+                    }
+                    catch (Exception e)
+                    {
+                        testException = e;
+                    }
+                    using (tracer.BuildSpan("i throw 1")
+                        .StartActive())
+                    {
+                        using (tracer.BuildSpan("i throw 2")
+                            .StartActive())
+                        {
+                            // we don't actually throw now since using doesn't capture throws, we simulate our
+                            // extension method that catches them instead
+                            tracer.ActiveSpan.Log(new[]
+                            {
+                                new KeyValuePair<string, object>("error.object", testException)
+                            });
+                        }
+                        // we don't actually throw now since using doesn't capture throws, we simulate our
+                        // extension method that catches them instead
+                        tracer.ActiveSpan.Log(new[]
+                        {
+                            new KeyValuePair<string, object>("error.object", testException)
+                        });
+                    }
+                    // we don't actually throw now since using doesn't capture throws, we simulate our
+                    // extension method that catches them instead
+                    tracer.ActiveSpan.Log(new[]
+                    {
+                        new KeyValuePair<string, object>("error.object", testException)
+                    });
                 }
             }
+            catch
+            {
+                // TODO: I must not understand exceptions. The Exception escapes this method and hits unhandled before the finally is complete
 
-            // an 'end signal' and to wait for it to come through
-            Console.WriteLine(" +++ Flushing telemetry");
-            // TODO: Really we should emit a signal to our subscription and wait for that signal to come through to here
-            Thread.Sleep(TimeSpan.FromTicks((long) (minimumSpanLength.Ticks * 1.5)));
+                // an 'end signal' and to wait for it to come through
+                Console.WriteLine(" +++ Flushing telemetry");
+                // TODO: Really we should emit a signal to our subscription and wait for that signal to come through to here
+                Thread.Sleep(TimeSpan.FromTicks((long) (minimumSpanLength.Ticks * 1.5)));
+                throw;
+            }
+            finally
+            {
+                // an 'end signal' and to wait for it to come through
+                Console.WriteLine(" +++ Flushing telemetry");
+                // TODO: Really we should emit a signal to our subscription and wait for that signal to come through to here
+                Thread.Sleep(TimeSpan.FromTicks((long) (minimumSpanLength.Ticks * 1.5)));
+            }
         }
 
         private static void EmitSetTagEvent((ISpan span, string operationName, TagKeyValue tagKeyValue) obj)
