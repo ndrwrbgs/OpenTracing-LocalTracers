@@ -14,6 +14,14 @@
 
     public static class ColoredConsoleTracerDecorationFactory
     {
+        /// <remarks>
+        ///     Added to avoid failing tracing due to reference loops
+        /// </remarks>
+        private static readonly JsonSerializerSettings serializerSettings = new JsonSerializerSettings
+        {
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        };
+
         [NotNull]
         [PublicAPI]
         public static TracerDecoration Create(IConsoleConfiguration config)
@@ -142,7 +150,7 @@
                 case SetTagDataSerialization.Simple:
                     return tag => $"{tag.key} = {tag.value}";
                 case SetTagDataSerialization.Json:
-                    return tag => JsonConvert.SerializeObject(tag);
+                    return tag => JsonConvert.SerializeObject(tag, serializerSettings);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -192,7 +200,7 @@
                         }
                     };
                 case LogDataSerialization.Json:
-                    return JsonConvert.SerializeObject;
+                    return input => JsonConvert.SerializeObject(input, serializerSettings);
                 case LogDataSerialization.SimplifySingleKvpAndEventsOtherwiseJson:
                     return fields =>
                     {
@@ -217,13 +225,13 @@
                             }
                             else
                             {
-                                toReturn += JsonConvert.SerializeObject(fields[0].value);
+                                toReturn += JsonConvert.SerializeObject(fields[0].value, serializerSettings);
                             }
 
                             return toReturn;
                         }
 
-                        return JsonConvert.SerializeObject(fields);
+                        return JsonConvert.SerializeObject(fields, serializerSettings);
                     };
                 default:
                     throw new ArgumentOutOfRangeException();
