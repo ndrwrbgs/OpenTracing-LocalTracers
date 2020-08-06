@@ -41,7 +41,7 @@ namespace TestApp
                         .WithOutputDurationOnFinished(true)
                         .WithDataSerialization(
                             SetTagDataSerialization.Simple,
-                            LogDataSerialization.Simple));
+                            LogDataSerialization.Json));
             consoleConfiguration = builder.BuildConsoleConfiguration();
             fileElement = builder.BuildFileConfiguration();
 
@@ -67,6 +67,14 @@ namespace TestApp
                 {
                     Console.WriteLine("Inside inner");
                 }
+
+                List<object> selfReferencingObject = new List<object>();
+                selfReferencingObject.Add(selfReferencingObject);
+                tracer.ActiveSpan.Log(
+                    new Dictionary<string, object>
+                    {
+                        [nameof(selfReferencingObject)] = selfReferencingObject
+                    });
             }
         }
     }
